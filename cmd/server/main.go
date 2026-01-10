@@ -6,6 +6,9 @@ import (
 	"os"
 
 	"github.com/gorilla/mux"
+	"github.com/vinayb91/task-manager-ai-backend.git/internal/handlers"
+	"github.com/vinayb91/task-manager-ai-backend.git/internal/repository"
+	"github.com/vinayb91/task-manager-ai-backend.git/internal/services"
 )
 
 func enableCORS(next http.Handler) http.Handler {
@@ -25,11 +28,18 @@ func enableCORS(next http.Handler) http.Handler {
 
 func main() {
 
+	repo := repository.NewTaskRepository()
+	agent := services.NewAgentService(repo)
+	handler := handlers.NewHandler(agent, repo)
+
 	r := mux.NewRouter()
 	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	}).Methods("GET")
+
+	r.HandleFunc("/api/agent/query", handler.HandleAgentQuery).Methods("POST", "OPTIONS")
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
