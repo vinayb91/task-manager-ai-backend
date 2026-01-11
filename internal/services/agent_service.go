@@ -119,6 +119,28 @@ func defineOpenAITools() []models.OpenAITool {
 				},
 			},
 		},
+		{
+			Type: "function",
+			Function: models.OpenAIFunctionDef{
+				Name:        "list_tasks",
+				Description: "Lists all tasks, optionally filtered by status (pending/completed/all) or priority",
+				Parameters: map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"status": map[string]interface{}{
+							"type":        "string",
+							"description": "Filter by status",
+							"enum":        []string{"pending", "completed", "all"},
+						},
+						"priority": map[string]interface{}{
+							"type":        "string",
+							"description": "Filter by priority",
+							"enum":        []string{"low", "medium", "high"},
+						},
+					},
+				},
+			},
+		},
 	}
 }
 
@@ -247,6 +269,12 @@ func (s *AgentService) ExecuteTool(toolName string, input map[string]interface{}
 			return map[string]interface{}{"success": false, "message": err.Error()}, nil
 		}
 		return map[string]interface{}{"success": true, "task": task}, nil
+
+	case "list_tasks":
+		status := getStringOrEmpty(input, "status")
+		priority := getStringOrEmpty(input, "priority")
+		tasks := s.repo.List(status, priority)
+		return map[string]interface{}{"tasks": tasks, "count": len(tasks)}, nil
 
 	default:
 		return nil, fmt.Errorf("unknown tool: %s", toolName)
