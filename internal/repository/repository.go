@@ -2,6 +2,7 @@ package repository
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -88,4 +89,31 @@ func (r *TaskRepository) Update(id int, updates map[string]interface{}) (models.
 		}
 	}
 	return models.Task{}, fmt.Errorf("task not found")
+}
+
+func (r *TaskRepository) Complete(id int) (models.Task, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	for i, task := range r.tasks {
+		if task.ID == id {
+			r.tasks[i].Completed = true
+			return r.tasks[i], nil
+		}
+	}
+	return models.Task{}, fmt.Errorf("task not found")
+}
+
+func (r *TaskRepository) Search(keyword string) []models.Task {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	results := make([]models.Task, 0)
+	keyword = strings.ToLower(keyword)
+	for _, task := range r.tasks {
+		if strings.Contains(strings.ToLower(task.Title), keyword) || strings.Contains(strings.ToLower(task.Description), keyword) {
+			results = append(results, task)
+		}
+	}
+	return results
 }

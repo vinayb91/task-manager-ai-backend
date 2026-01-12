@@ -141,6 +141,40 @@ func defineOpenAITools() []models.OpenAITool {
 				},
 			},
 		},
+		{
+			Type: "function",
+			Function: models.OpenAIFunctionDef{
+				Name:        "search_tasks",
+				Description: "Searches tasks by keyword in title or description",
+				Parameters: map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"keyword": map[string]interface{}{
+							"type":        "string",
+							"description": "Keyword to search for",
+						},
+					},
+					"required": []string{"keyword"},
+				},
+			},
+		},
+		{
+			Type: "function",
+			Function: models.OpenAIFunctionDef{
+				Name:        "complete_task",
+				Description: "Marks a task as completed by task ID",
+				Parameters: map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"task_id": map[string]interface{}{
+							"type":        "number",
+							"description": "ID of the task to complete",
+						},
+					},
+					"required": []string{"task_id"},
+				},
+			},
+		},
 	}
 }
 
@@ -181,7 +215,10 @@ func (s *AgentService) RunAgent(userMessage string) (string, error) {
 					result = map[string]interface{}{"error": err.Error()}
 				}
 
-				resultJSON, _ := json.Marshal(result)
+				resultJSON, err := json.Marshal(result)
+				if err != nil {
+					return "", fmt.Errorf("failed to marshal tool result: %v", err)
+				}
 
 				messages = append(messages, models.OpenAIMessage{
 					Role:       "tool",
@@ -275,6 +312,19 @@ func (s *AgentService) ExecuteTool(toolName string, input map[string]interface{}
 		priority := getStringOrEmpty(input, "priority")
 		tasks := s.repo.List(status, priority)
 		return map[string]interface{}{"tasks": tasks, "count": len(tasks)}, nil
+
+	case "search_tasks":
+		keyword := input["keyword"].(string)
+		tasks := s.repo.Search(keyword)
+		return map[string]interface{}{"tasks": tasks, "count": len(tasks)}, nil
+
+	case "complete_task":
+		taskID := int(input["task_id"].(float64))
+		task, err := s.repo.Complete(taskID)
+		if err != nil {
+			return map[string]interface{}{"success": false, "message": err.Error()}, nil
+		}
+		return map[string]interface{}{"success": true, "message": fmt.Sprintf("Task '%s' completed", task.Title)}, nil
 
 	default:
 		return nil, fmt.Errorf("unknown tool: %s", toolName)
