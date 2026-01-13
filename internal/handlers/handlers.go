@@ -39,3 +39,9 @@ func (h *Handler) HandleAgentQuery(w http.ResponseWriter, r *http.Request) {
 		Tasks:    tasks,
 	})
 }
+
+func (h *Handler) GetTasks(w http.ResponseWriter, r *http.Request) {
+	tasks := h.repo.List("all", "")
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(tasks)
+}

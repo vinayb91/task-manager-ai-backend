@@ -47,6 +47,7 @@ func main() {
 	}).Methods("GET")
 
 	r.HandleFunc("/api/agent/query", handler.HandleAgentQuery).Methods("POST", "OPTIONS")
+	r.HandleFunc("/api/tasks", handler.GetTasks).Methods("GET", "OPTIONS")
 
 	port := os.Getenv("PORT")
 	if port == "" {
