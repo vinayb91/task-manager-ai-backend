@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/vinayb91/task-manager-ai-backend.git/internal/handlers"
@@ -16,7 +17,11 @@ var Version = "1.0.0"
 
 func enableCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		allowedOrigin := os.Getenv("ALLOWED_ORIGIN")
+		if allowedOrigin == "" {
+			allowedOrigin = "*"
+		}
+		w.Header().Set("Access-Control-Allow-Origin", strings.TrimRight(allowedOrigin, "/"))
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
