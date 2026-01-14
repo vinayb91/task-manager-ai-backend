@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/gorilla/mux"
-	"github.com/joho/godotenv"
 	"github.com/vinayb91/task-manager-ai-backend.git/internal/handlers"
 	"github.com/vinayb91/task-manager-ai-backend.git/internal/repository"
 	"github.com/vinayb91/task-manager-ai-backend.git/internal/services"
@@ -31,7 +30,6 @@ func enableCORS(next http.Handler) http.Handler {
 }
 
 func main() {
-	godotenv.Load()
 	repo := repository.NewTaskRepository()
 	agent := services.NewAgentService(repo)
 	handler := handlers.NewHandler(agent, repo)
