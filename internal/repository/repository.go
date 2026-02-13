@@ -83,7 +83,7 @@ func (r *TaskRepository) Update(id int, updates map[string]interface{}) (models.
 				r.tasks[i].Priority = priority
 			}
 			if dueDate, ok := updates["due_date"].(string); ok {
-				r.tasks[i].DueDate = dueDate
+				r.tasks[i].DueDate = &dueDate
 			}
 			return r.tasks[i], nil
 		}

@@ -1,6 +1,10 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"github.com/golang-jwt/jwt/v5"
+)
 
 type User struct {
 	ID        int       `json:"id"`
@@ -33,9 +37,10 @@ type Task struct {
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
 	Priority    string    `json:"priority"`
-	DueDate     string    `json:"due_date,omitempty"`
+	DueDate     *string   `json:"due_date,omitempty"`
 	Completed   bool      `json:"completed"`
 	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 // Agent Request/Response Models
@@ -91,4 +96,11 @@ type OpenAIChoice struct {
 
 type OpenAIResponse struct {
 	Choices []OpenAIChoice `json:"choices"`
+}
+
+// JWT Claims
+type Claims struct {
+	UserID int    `json:"user_id"`
+	Email  string `json:"email"`
+	jwt.RegisteredClaims
 }

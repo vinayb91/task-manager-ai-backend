@@ -285,8 +285,12 @@ func (s *AgentService) ExecuteTool(toolName string, input map[string]interface{}
 			Title:       input["title"].(string),
 			Priority:    input["priority"].(string),
 			Description: getStringOrEmpty(input, "description"),
-			DueDate:     getStringOrEmpty(input, "due_date"),
 		}
+
+		if dueDate := getStringOrEmpty(input, "due_date"); dueDate != "" {
+			task.DueDate = &dueDate
+		}
+
 		created := s.repo.Create(task)
 		return map[string]interface{}{"success": true, "task": created}, nil
 
