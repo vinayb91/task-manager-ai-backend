@@ -34,6 +34,7 @@ type AuthResponse struct {
 // Domain Models
 type Task struct {
 	ID          int       `json:"id"`
+	UserID      int       `json:"user_id"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
 	Priority    string    `json:"priority"`

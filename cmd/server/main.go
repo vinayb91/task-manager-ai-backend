@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 	"github.com/vinayb91/task-manager-ai-backend.git/internal/database"
 	"github.com/vinayb91/task-manager-ai-backend.git/internal/handlers"
 	"github.com/vinayb91/task-manager-ai-backend.git/internal/middlewares"
@@ -17,7 +18,7 @@ import (
 var Version = "1.0.0"
 
 func main() {
-	// godotenv.Load()
+	godotenv.Load()
 	var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
 	if len(jwtSecret) == 0 {
 		log.Fatal("JWT_SECRET environment variable must be set")
@@ -28,7 +29,7 @@ func main() {
 		log.Fatal("Failed to initialize database:", err)
 	}
 	defer db.Close()
-	taskRepo := repository.NewTaskRepository()
+	taskRepo := repository.NewTaskRepository(db)
 	userRepo := repository.NewUserRepository(db)
 
 	agentService := services.NewAgentService(taskRepo)

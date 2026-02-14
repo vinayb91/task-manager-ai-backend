@@ -24,29 +24,37 @@ func NewHandler(authService *services.AuthService, agentService *services.AgentS
 }
 
 func (h *Handler) HandleAgentQuery(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value("userID").(int)
+
 	var req models.AgentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	response, err := h.agentService.RunAgent(req.Message)
+	response, err := h.agentService.RunAgent(userID, req.Message)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	tasks := h.taskRepo.List("all", "")
+	tasks, _ := h.taskRepo.List(userID, "all", "")
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(models.AgentResponse{
-		Response: response,
-		Tasks:    tasks,
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"response": response,
+		"tasks":    tasks,
 	})
 }
 
 func (h *Handler) GetTasks(w http.ResponseWriter, r *http.Request) {
-	tasks := h.taskRepo.List("all", "")
+	userID := r.Context().Value("userID").(int)
+	tasks, err := h.taskRepo.List(userID, "all", "")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(tasks)
 }

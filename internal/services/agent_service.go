@@ -16,23 +16,23 @@ import (
 
 // Agent Service with OpenAI
 type AgentService struct {
-	repo   *repository.TaskRepository
-	apiKey string
-	apiURL string
-	tools  []models.OpenAITool
+	taskRepo *repository.TaskRepository
+	apiKey   string
+	apiURL   string
+	tools    []models.OpenAITool
 }
 
-func NewAgentService(repo *repository.TaskRepository) *AgentService {
+func NewAgentService(taskRepo *repository.TaskRepository) *AgentService {
 	apiKey := os.Getenv("OPENAI_API_KEY")
 	if apiKey == "" {
 		log.Println("WARNING: OPENAI_API_KEY not set. Agent will not work.")
 	}
 
 	return &AgentService{
-		repo:   repo,
-		apiKey: apiKey,
-		apiURL: os.Getenv("OPENAI_API_URL"),
-		tools:  defineOpenAITools(),
+		taskRepo: taskRepo,
+		apiKey:   apiKey,
+		apiURL:   os.Getenv("OPENAI_API_URL"),
+		tools:    defineOpenAITools(),
 	}
 }
 
@@ -46,76 +46,12 @@ func defineOpenAITools() []models.OpenAITool {
 				Parameters: map[string]interface{}{
 					"type": "object",
 					"properties": map[string]interface{}{
-						"title": map[string]interface{}{
-							"type":        "string",
-							"description": "Task title",
-						},
-						"description": map[string]interface{}{
-							"type":        "string",
-							"description": "Detailed description",
-						},
-						"priority": map[string]interface{}{
-							"type":        "string",
-							"description": "Task priority",
-							"enum":        []string{"low", "medium", "high"},
-						},
-						"due_date": map[string]interface{}{
-							"type":        "string",
-							"description": "Due date in YYYY-MM-DD format",
-						},
+						"title":       map[string]interface{}{"type": "string", "description": "Task title"},
+						"description": map[string]interface{}{"type": "string", "description": "Detailed description"},
+						"priority":    map[string]interface{}{"type": "string", "enum": []string{"low", "medium", "high"}, "description": "Task priority"},
+						"due_date":    map[string]interface{}{"type": "string", "description": "Due date in YYYY-MM-DD format"},
 					},
 					"required": []string{"title", "priority"},
-				},
-			},
-		},
-		{
-			Type: "function",
-			Function: models.OpenAIFunctionDef{
-				Name:        "delete_task",
-				Description: "Deletes a task by task ID",
-				Parameters: map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"task_id": map[string]interface{}{
-							"type":        "number",
-							"description": "ID of the task to delete",
-						},
-					},
-					"required": []string{"task_id"},
-				},
-			},
-		},
-		{
-			Type: "function",
-			Function: models.OpenAIFunctionDef{
-				Name:        "update_task",
-				Description: "Updates task properties like title, description, priority, or due date",
-				Parameters: map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"task_id": map[string]interface{}{
-							"type":        "number",
-							"description": "ID of the task to update",
-						},
-						"title": map[string]interface{}{
-							"type":        "string",
-							"description": "New title",
-						},
-						"description": map[string]interface{}{
-							"type":        "string",
-							"description": "New description",
-						},
-						"priority": map[string]interface{}{
-							"type":        "string",
-							"description": "New priority",
-							"enum":        []string{"low", "medium", "high"},
-						},
-						"due_date": map[string]interface{}{
-							"type":        "string",
-							"description": "New due date",
-						},
-					},
-					"required": []string{"task_id"},
 				},
 			},
 		},
@@ -127,34 +63,9 @@ func defineOpenAITools() []models.OpenAITool {
 				Parameters: map[string]interface{}{
 					"type": "object",
 					"properties": map[string]interface{}{
-						"status": map[string]interface{}{
-							"type":        "string",
-							"description": "Filter by status",
-							"enum":        []string{"pending", "completed", "all"},
-						},
-						"priority": map[string]interface{}{
-							"type":        "string",
-							"description": "Filter by priority",
-							"enum":        []string{"low", "medium", "high"},
-						},
+						"status":   map[string]interface{}{"type": "string", "enum": []string{"pending", "completed", "all"}, "description": "Filter by status"},
+						"priority": map[string]interface{}{"type": "string", "enum": []string{"low", "medium", "high"}, "description": "Filter by priority"},
 					},
-				},
-			},
-		},
-		{
-			Type: "function",
-			Function: models.OpenAIFunctionDef{
-				Name:        "search_tasks",
-				Description: "Searches tasks by keyword in title or description",
-				Parameters: map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"keyword": map[string]interface{}{
-							"type":        "string",
-							"description": "Keyword to search for",
-						},
-					},
-					"required": []string{"keyword"},
 				},
 			},
 		},
@@ -164,21 +75,58 @@ func defineOpenAITools() []models.OpenAITool {
 				Name:        "complete_task",
 				Description: "Marks a task as completed by task ID",
 				Parameters: map[string]interface{}{
+					"type":       "object",
+					"properties": map[string]interface{}{"task_id": map[string]interface{}{"type": "number", "description": "ID of the task to complete"}},
+					"required":   []string{"task_id"},
+				},
+			},
+		},
+		{
+			Type: "function",
+			Function: models.OpenAIFunctionDef{
+				Name:        "delete_task",
+				Description: "Deletes a task by task ID",
+				Parameters: map[string]interface{}{
+					"type":       "object",
+					"properties": map[string]interface{}{"task_id": map[string]interface{}{"type": "number", "description": "ID of the task to delete"}},
+					"required":   []string{"task_id"},
+				},
+			},
+		},
+		{
+			Type: "function",
+			Function: models.OpenAIFunctionDef{
+				Name:        "update_task",
+				Description: "Updates task properties like title, description, priority, or due date",
+				Parameters: map[string]interface{}{
 					"type": "object",
 					"properties": map[string]interface{}{
-						"task_id": map[string]interface{}{
-							"type":        "number",
-							"description": "ID of the task to complete",
-						},
+						"task_id":     map[string]interface{}{"type": "number", "description": "ID of the task to update"},
+						"title":       map[string]interface{}{"type": "string", "description": "New title"},
+						"description": map[string]interface{}{"type": "string", "description": "New description"},
+						"priority":    map[string]interface{}{"type": "string", "enum": []string{"low", "medium", "high"}, "description": "New priority"},
+						"due_date":    map[string]interface{}{"type": "string", "description": "New due date in YYYY-MM-DD format"},
 					},
 					"required": []string{"task_id"},
+				},
+			},
+		},
+		{
+			Type: "function",
+			Function: models.OpenAIFunctionDef{
+				Name:        "search_tasks",
+				Description: "Searches tasks by keyword in title or description",
+				Parameters: map[string]interface{}{
+					"type":       "object",
+					"properties": map[string]interface{}{"keyword": map[string]interface{}{"type": "string", "description": "Keyword to search for"}},
+					"required":   []string{"keyword"},
 				},
 			},
 		},
 	}
 }
 
-func (s *AgentService) RunAgent(userMessage string) (string, error) {
+func (s *AgentService) RunAgent(userID int, userMessage string) (string, error) {
 	messages := []models.OpenAIMessage{
 		{Role: "system", Content: fmt.Sprintf("You are a helpful assistant. Today is %s.", time.Now().Format("2006-01-02 (Monday)"))},
 	}
@@ -210,7 +158,7 @@ func (s *AgentService) RunAgent(userMessage string) (string, error) {
 					return "", fmt.Errorf("failed to parse tool arguments: %v", err)
 				}
 
-				result, err := s.ExecuteTool(toolCall.Function.Name, input)
+				result, err := s.ExecuteTool(userID, toolCall.Function.Name, input)
 				if err != nil {
 					result = map[string]interface{}{"error": err.Error()}
 				}
@@ -278,25 +226,44 @@ func (s *AgentService) callOpenAI(messages []models.OpenAIMessage) (*models.Open
 	return &openAIResp, nil
 }
 
-func (s *AgentService) ExecuteTool(toolName string, input map[string]interface{}) (interface{}, error) {
+func (s *AgentService) ExecuteTool(userID int, toolName string, input map[string]interface{}) (interface{}, error) {
 	switch toolName {
 	case "create_task":
 		task := models.Task{
+			UserID:      userID,
 			Title:       input["title"].(string),
 			Priority:    input["priority"].(string),
 			Description: getStringOrEmpty(input, "description"),
 		}
-
 		if dueDate := getStringOrEmpty(input, "due_date"); dueDate != "" {
 			task.DueDate = &dueDate
 		}
-
-		created := s.repo.Create(task)
+		created, err := s.taskRepo.Create(task)
+		if err != nil {
+			return nil, err
+		}
 		return map[string]interface{}{"success": true, "task": created}, nil
+
+	case "list_tasks":
+		status := getStringOrEmpty(input, "status")
+		priority := getStringOrEmpty(input, "priority")
+		tasks, err := s.taskRepo.List(userID, status, priority)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]interface{}{"tasks": tasks, "count": len(tasks)}, nil
+
+	case "complete_task":
+		taskID := int(input["task_id"].(float64))
+		task, err := s.taskRepo.Complete(userID, taskID)
+		if err != nil {
+			return map[string]interface{}{"success": false, "message": err.Error()}, nil
+		}
+		return map[string]interface{}{"success": true, "message": fmt.Sprintf("Task '%s' completed", task.Title)}, nil
 
 	case "delete_task":
 		taskID := int(input["task_id"].(float64))
-		err := s.repo.Delete(taskID)
+		err := s.taskRepo.Delete(userID, taskID)
 		if err != nil {
 			return map[string]interface{}{"success": false, "message": err.Error()}, nil
 		}
@@ -305,30 +272,19 @@ func (s *AgentService) ExecuteTool(toolName string, input map[string]interface{}
 	case "update_task":
 		taskID := int(input["task_id"].(float64))
 		delete(input, "task_id")
-		task, err := s.repo.Update(taskID, input)
+		task, err := s.taskRepo.Update(userID, taskID, input)
 		if err != nil {
 			return map[string]interface{}{"success": false, "message": err.Error()}, nil
 		}
 		return map[string]interface{}{"success": true, "task": task}, nil
 
-	case "list_tasks":
-		status := getStringOrEmpty(input, "status")
-		priority := getStringOrEmpty(input, "priority")
-		tasks := s.repo.List(status, priority)
-		return map[string]interface{}{"tasks": tasks, "count": len(tasks)}, nil
-
 	case "search_tasks":
 		keyword := input["keyword"].(string)
-		tasks := s.repo.Search(keyword)
-		return map[string]interface{}{"tasks": tasks, "count": len(tasks)}, nil
-
-	case "complete_task":
-		taskID := int(input["task_id"].(float64))
-		task, err := s.repo.Complete(taskID)
+		tasks, err := s.taskRepo.Search(userID, keyword)
 		if err != nil {
-			return map[string]interface{}{"success": false, "message": err.Error()}, nil
+			return nil, err
 		}
-		return map[string]interface{}{"success": true, "message": fmt.Sprintf("Task '%s' completed", task.Title)}, nil
+		return map[string]interface{}{"tasks": tasks, "count": len(tasks)}, nil
 
 	default:
 		return nil, fmt.Errorf("unknown tool: %s", toolName)

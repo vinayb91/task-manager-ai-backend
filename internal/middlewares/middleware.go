@@ -33,13 +33,16 @@ func AuthMiddleware(authService *services.AuthService) func(http.Handler) http.H
 
 func EnableCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		env := os.Getenv("ENV")
+
 		allowedOrigin := os.Getenv("ALLOWED_ORIGIN")
-		if allowedOrigin == "" {
+		if allowedOrigin == "" || env == "dev" {
 			allowedOrigin = "*"
 		}
+
 		w.Header().Set("Access-Control-Allow-Origin", strings.TrimRight(allowedOrigin, "/"))
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)
