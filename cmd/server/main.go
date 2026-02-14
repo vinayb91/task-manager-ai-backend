@@ -66,6 +66,7 @@ func main() {
 
 	// public routes
 	r.HandleFunc("/api/auth/register", handler.Register).Methods("POST", "OPTIONS")
+	r.HandleFunc("/api/auth/login", handler.Login).Methods("POST", "OPTIONS")
 
 	r.HandleFunc("/api/agent/query", handler.HandleAgentQuery).Methods("POST", "OPTIONS")
 	r.HandleFunc("/api/tasks", handler.GetTasks).Methods("GET", "OPTIONS")

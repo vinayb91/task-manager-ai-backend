@@ -8,6 +8,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/vinayb91/task-manager-ai-backend.git/internal/models"
 	"github.com/vinayb91/task-manager-ai-backend.git/internal/repository"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthService struct {
@@ -45,6 +46,28 @@ func (s *AuthService) Register(req models.RegisterRequest) (*models.AuthResponse
 	return &models.AuthResponse{
 		Token: token,
 		User:  *createdUser,
+	}, nil
+}
+
+func (s *AuthService) Login(req models.LoginRequest) (*models.AuthResponse, error) {
+	user, err := s.userRepo.GetByEmail(req.Email)
+	if err != nil {
+		return nil, fmt.Errorf("invalid credentials")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
+		return nil, fmt.Errorf("invalid credentials")
+	}
+
+	token, err := s.generateToken(user.ID, user.Email)
+	if err != nil {
+		return nil, err
+	}
+
+	user.Password = ""
+	return &models.AuthResponse{
+		Token: token,
+		User:  *user,
 	}, nil
 }
 
