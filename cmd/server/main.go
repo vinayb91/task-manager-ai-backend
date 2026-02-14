@@ -5,35 +5,16 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/vinayb91/task-manager-ai-backend.git/internal/database"
 	"github.com/vinayb91/task-manager-ai-backend.git/internal/handlers"
+	"github.com/vinayb91/task-manager-ai-backend.git/internal/middlewares"
 	"github.com/vinayb91/task-manager-ai-backend.git/internal/repository"
 	"github.com/vinayb91/task-manager-ai-backend.git/internal/services"
 )
 
 var Version = "1.0.0"
-
-func enableCORS(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		allowedOrigin := os.Getenv("ALLOWED_ORIGIN")
-		if allowedOrigin == "" {
-			allowedOrigin = "*"
-		}
-		w.Header().Set("Access-Control-Allow-Origin", strings.TrimRight(allowedOrigin, "/"))
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
 
 func main() {
 	// godotenv.Load()
@@ -77,5 +58,5 @@ func main() {
 	}
 
 	log.Printf("Server starting on port %s (Version: %s)", port, Version)
-	log.Fatal(http.ListenAndServe(":"+port, enableCORS(r)))
+	log.Fatal(http.ListenAndServe(":"+port, middlewares.EnableCORS(r)))
 }
