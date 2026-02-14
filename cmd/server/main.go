@@ -49,8 +49,11 @@ func main() {
 	r.HandleFunc("/api/auth/register", handler.Register).Methods("POST", "OPTIONS")
 	r.HandleFunc("/api/auth/login", handler.Login).Methods("POST", "OPTIONS")
 
-	r.HandleFunc("/api/agent/query", handler.HandleAgentQuery).Methods("POST", "OPTIONS")
-	r.HandleFunc("/api/tasks", handler.GetTasks).Methods("GET", "OPTIONS")
+	// Protected routes
+	protected := r.PathPrefix("/api").Subrouter()
+	protected.Use(middlewares.AuthMiddleware(authService))
+	protected.HandleFunc("/agent/query", handler.HandleAgentQuery).Methods("POST", "OPTIONS")
+	protected.HandleFunc("/tasks", handler.GetTasks).Methods("GET", "OPTIONS")
 
 	port := os.Getenv("PORT")
 	if port == "" {
