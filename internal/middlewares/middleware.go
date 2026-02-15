@@ -2,9 +2,11 @@ package middlewares
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/vinayb91/task-manager-ai-backend.git/internal/services"
 )
@@ -50,5 +52,14 @@ func EnableCORS(next http.Handler) http.Handler {
 		}
 
 		next.ServeHTTP(w, r)
+	})
+}
+
+func RequestLogger(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		log.Printf("[HTTP] START %s %s", r.Method, r.RequestURI)
+		next.ServeHTTP(w, r)
+		log.Printf("[HTTP] END %s %s completed in %v", r.Method, r.RequestURI, time.Since(start))
 	})
 }

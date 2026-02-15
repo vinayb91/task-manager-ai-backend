@@ -66,7 +66,7 @@ func main() {
 	}
 	srv := &http.Server{
 		Addr:    ":" + port,
-		Handler: middlewares.EnableCORS(r),
+		Handler: middlewares.RequestLogger(middlewares.EnableCORS(r)),
 	}
 
 	go func() {

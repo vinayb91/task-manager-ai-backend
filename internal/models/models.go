@@ -95,8 +95,15 @@ type OpenAIChoice struct {
 	FinishReason string        `json:"finish_reason"`
 }
 
+type OpenAIUsage struct {
+	PromptTokens     int `json:"prompt_tokens"`
+	CompletionTokens int `json:"completion_tokens"`
+	TotalTokens      int `json:"total_tokens"`
+}
+
 type OpenAIResponse struct {
 	Choices []OpenAIChoice `json:"choices"`
+	Usage   OpenAIUsage    `json:"usage"`
 }
 
 // JWT Claims

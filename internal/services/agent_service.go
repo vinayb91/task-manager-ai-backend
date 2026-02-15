@@ -133,8 +133,11 @@ func (s *AgentService) RunAgent(userID int, userMessage string) (string, error) 
 
 	messages = append(messages, models.OpenAIMessage{Role: "user", Content: userMessage})
 
+	log.Printf("[Trace] Starting Agent run for UserID: %d. Initial message: %s", userID, userMessage)
+	totalTokens := 0
 	maxIterations := 10
 	for i := 0; i < maxIterations; i++ {
+		log.Printf("[Trace] Iteration %d: Calling OpenAI...", i+1)
 		response, err := s.callOpenAI(messages)
 		if err != nil {
 			return "", err
@@ -144,6 +147,10 @@ func (s *AgentService) RunAgent(userID int, userMessage string) (string, error) 
 			return "", fmt.Errorf("no response from OpenAI")
 		}
 
+		totalTokens += response.Usage.TotalTokens
+		log.Printf("[Trace] OpenAI Response received. Tokens: %d (Total: %d). FinishReason: %s",
+			response.Usage.TotalTokens, totalTokens, response.Choices[0].FinishReason)
+
 		message := response.Choices[0].Message
 		finishReason := response.Choices[0].FinishReason
 
@@ -151,7 +158,7 @@ func (s *AgentService) RunAgent(userID int, userMessage string) (string, error) 
 			messages = append(messages, message)
 
 			for _, toolCall := range message.ToolCalls {
-				log.Printf("Agent using tool: %s", toolCall.Function.Name)
+				log.Printf("[Trace] Agent executing tool: %s with args: %s", toolCall.Function.Name, toolCall.Function.Arguments)
 
 				var input map[string]interface{}
 				if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &input); err != nil {
@@ -162,6 +169,7 @@ func (s *AgentService) RunAgent(userID int, userMessage string) (string, error) 
 				if err != nil {
 					result = map[string]interface{}{"error": err.Error()}
 				}
+				log.Printf("[Trace] Tool execution result: %+v", result)
 
 				resultJSON, err := json.Marshal(result)
 				if err != nil {
@@ -175,6 +183,7 @@ func (s *AgentService) RunAgent(userID int, userMessage string) (string, error) 
 				})
 			}
 		} else {
+			log.Printf("[Trace] Agent run completed. Total tokens used: %d", totalTokens)
 			return message.Content, nil
 		}
 	}
