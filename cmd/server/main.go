@@ -18,7 +18,7 @@ import (
 	"github.com/vinayb91/task-manager-ai-backend.git/internal/services"
 )
 
-var Version = "1.0.0"
+var Version = "2.0.0"
 
 func main() {
 
