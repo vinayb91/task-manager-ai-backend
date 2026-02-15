@@ -114,6 +114,20 @@ func defineOpenAITools() []models.OpenAITool {
 		{
 			Type: "function",
 			Function: models.OpenAIFunctionDef{
+				Name:        "calculate_date",
+				Description: "Calculates the exact date for a relative time (e.g., 'next Friday', 'in 2 weeks')",
+				Parameters: map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"days_offset":    map[string]interface{}{"type": "integer", "description": "Number of days from today (e.g., 7 for 'in a week')"},
+						"target_weekday": map[string]interface{}{"type": "string", "enum": []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}, "description": "The specific day of the week needed"},
+					},
+				},
+			},
+		},
+		{
+			Type: "function",
+			Function: models.OpenAIFunctionDef{
 				Name:        "search_tasks",
 				Description: "Searches tasks by keyword in title or description",
 				Parameters: map[string]interface{}{
@@ -128,7 +142,7 @@ func defineOpenAITools() []models.OpenAITool {
 
 func (s *AgentService) RunAgent(userID int, userMessage string) (string, error) {
 	messages := []models.OpenAIMessage{
-		{Role: "system", Content: fmt.Sprintf("You are a helpful assistant. Today is %s.", time.Now().Format("2006-01-02 (Monday)"))},
+		{Role: "system", Content: fmt.Sprintf("You are a helpful assistant. Today is %s. Use the 'calculate_date' tool to resolve relative dates.", time.Now().Format("2006-01-02 (Monday)"))},
 	}
 
 	messages = append(messages, models.OpenAIMessage{Role: "user", Content: userMessage})
@@ -288,15 +302,71 @@ func (s *AgentService) ExecuteTool(userID int, toolName string, input map[string
 		return map[string]interface{}{"success": true, "task": task}, nil
 
 	case "search_tasks":
-		keyword := input["keyword"].(string)
-		tasks, err := s.taskRepo.Search(userID, keyword)
-		if err != nil {
-			return nil, err
-		}
-		return map[string]interface{}{"tasks": tasks, "count": len(tasks)}, nil
+		return s.searchTasksTool(userID, input)
+
+	case "calculate_date":
+		return s.calculateDateTool(input)
 
 	default:
 		return nil, fmt.Errorf("unknown tool: %s", toolName)
+	}
+}
+
+func (s *AgentService) searchTasksTool(userID int, args map[string]interface{}) (interface{}, error) {
+	key := getStringOrEmpty(args, "keyword")
+	if key == "" {
+		return nil, fmt.Errorf("search keyword is required")
+	}
+
+	list, err := s.taskRepo.Search(userID, key)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{"tasks": list, "count": len(list)}, nil
+}
+
+func (s *AgentService) calculateDateTool(args map[string]interface{}) (interface{}, error) {
+	refDate := time.Now()
+
+	if val, ok := args["days_offset"].(float64); ok {
+		refDate = refDate.AddDate(0, 0, int(val))
+	}
+
+	if targetDayStr := getStringOrEmpty(args, "target_weekday"); targetDayStr != "" {
+		targetDay := parseWeekday(targetDayStr)
+		daysUntil := int(targetDay - refDate.Weekday())
+		if daysUntil <= 0 {
+			daysUntil += 7
+		}
+		refDate = refDate.AddDate(0, 0, daysUntil)
+	}
+
+	return map[string]string{
+		"date":      refDate.Format("2006-01-02"),
+		"day":       refDate.Weekday().String(),
+		"formatted": refDate.Format("Monday, January 02, 2006"),
+	}, nil
+}
+
+func parseWeekday(day string) time.Weekday {
+	switch day {
+	case "Monday":
+		return time.Monday
+	case "Tuesday":
+		return time.Tuesday
+	case "Wednesday":
+		return time.Wednesday
+	case "Thursday":
+		return time.Thursday
+	case "Friday":
+		return time.Friday
+	case "Saturday":
+		return time.Saturday
+	case "Sunday":
+		return time.Sunday
+	default:
+		return time.Sunday // Default fallback
 	}
 }
 
