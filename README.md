@@ -84,13 +84,11 @@ The **AgentService** implements a controlled autonomous loop:
 │       └── main.go
 ├── internal/
 │   ├── handlers/
+|   ├── database/
 │   ├── middlewares/
 │   ├── services/
 │   ├── repository/
 │   └── models/
-├── db/
-│   └── migrations/
-├── config/
 ├── go.mod
 ├── go.sum
 └── README.md
