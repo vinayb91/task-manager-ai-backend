@@ -47,7 +47,7 @@ func main() {
 			"status":  "OK",
 			"version": Version,
 		})
-	}).Methods("GET")
+	}).Methods("HEAD")
 
 	// public routes
 	r.HandleFunc("/api/auth/register", handler.Register).Methods("POST", "OPTIONS")
